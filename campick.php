@@ -10,7 +10,7 @@
 		if( is_callable( $func ) ) {
 			return call_user_func( $func );
 		} else {
-			print( "nope." );
+			render( "nope" );
 			throw new Exception( "user tried to call do_".$_REQUEST[ "action" ].", which doesn't exist" );
 		}
 	}
@@ -24,6 +24,72 @@
 
 	function do_topcams() {
 		render( "topcams" );
+	}
+
+	function do_reports() {
+		require_admin();
+		render( "reports" );
+	}
+
+	function do_report() {
+		global $db;
+		if( !array_key_exists( "url", $_POST ) ) {
+			render( "nope" );
+			exit;
+		}
+		if( !($statement = $db->prepare( "INSERT INTO reports VALUES (?,1) ON DUPLICATE KEY UPDATE reports = reports+1" )) ) {
+			throw new Exception( "failed to prepare report statement: ".$db->error );
+		}
+		if( !($statement->bind_param( "s", $_POST[ "url" ] )) ) {
+			throw new Exception( "error binding params to report statement: ".$db->error );
+		}
+		if( !($statement->execute()) ) {
+			throw new Exception( "error executing config report statement: ".$db->error );
+		}
+		if( $statement->affected_rows == 0 ) {
+			throw new Exception( "error: report statement didn't seem to affect any rows: ".$db->error );
+		}
+		header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+		exit;
+	}
+
+	function do_nuke() {
+		require_admin();
+		global $db;
+		if( !array_key_exists( "url", $_POST ) ) {
+			render( "nope" );
+			exit;
+		}
+		if( !($statement = $db->prepare( "DELETE FROM cameras WHERE camera_url=?" )) ) {
+			throw new Exception( "failed to prepare nuke statement: ".$db->error );
+		}
+		if( !($statement->bind_param( "s", $_POST[ "url" ] )) ) {
+			throw new Exception( "error binding params to nuke statement: ".$db->error );
+		}
+		if( !($statement->execute()) ) {
+			throw new Exception( "error executing config nuke statement: ".$db->error );
+		}
+		do_clear_reports();
+	}
+
+	function do_clear_reports() {
+		require_admin();
+		global $db;
+		if( !($statement = $db->prepare( "DELETE FROM reports WHERE url=?" )) ) {
+			throw new Exception( "failed to prepare clear_reports statement: ".$db->error );
+		}
+		if( !($statement->bind_param( "s", $_POST[ "url" ] )) ) {
+			throw new Exception( "error binding params to clear_reports statement: ".$db->error );
+		}
+		if( !($statement->execute()) ) {
+			throw new Exception( "error executing config clear_reports statement: ".$db->error );
+		}
+		if( $_POST[ "back" ] == "reports" ) {
+			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=reports" );
+		} else {
+			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+		}
+		exit;
 	}
 
 	function do_bothsuck() {
@@ -278,8 +344,11 @@
 		if( !$db->real_query( "CREATE TABLE IF NOT EXISTS config ( config_key VARCHAR(128) PRIMARY KEY, config_value TEXT )" ) ) {
 			throw new Exception( "failed to create config table: ".$db->error );
 		}
-		if( !$db->real_query( "CREATE TABLE IF NOT EXISTS cameras ( camera_id SERIAL PRIMARY KEY, camera_url TEXT, camera_votes INTEGER )" ) ) {
+		if( !$db->real_query( "CREATE TABLE IF NOT EXISTS cameras ( camera_id SERIAL PRIMARY KEY, camera_url TEXT , camera_votes INTEGER )" ) ) {
 			throw new Exception( "failed to create cameras table: ".$db->error );
+		}
+		if( !$db->real_query( "CREATE TABLE IF NOT EXISTS reports ( url TEXT, reports INTEGER )" ) ) {
+			throw new Exception( "failed to create reports table: ".$db->error );
 		}
 		return $db;
 	}
