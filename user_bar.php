@@ -16,7 +16,7 @@
 	}
 </script>
 <div class='topbar'>
-	<a href='<?php print( $_SERVER[ "PHP_SELF" ] ); ?>'>Home</a> |
+	<a href='<?php print( htmlentities( $_SERVER[ "PHP_SELF" ] ) ); ?>'>Home</a> |
 	<a href='?action=topcams'>Top Cameras</a> |
 	<a href='#' onclick='showLogin(this);return false;'>Login</a>
 </div>
