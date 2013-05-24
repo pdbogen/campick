@@ -26,6 +26,31 @@
 		render( "topcams" );
 	}
 
+	function do_bothsuck() {
+		global $db;
+		if( !array_key_exists( "url1", $_POST ) ) {
+			render( "nope" );
+			exit;
+		}
+		if( !array_key_exists( "url2", $_POST ) ) {
+			render( "nope" );
+			exit;
+		}
+		if( !($statement = $db->prepare( "UPDATE cameras SET camera_votes = camera_votes-1 WHERE camera_url=? OR camera_url=?" )) ) {
+			throw new Exception( "failed to prepare bothsuck statement: ".$db->error );
+		}
+		if( !($statement->bind_param( "ss", $_POST[ "url1" ], $_POST[ "url2" ] )) ) {
+			throw new Exception( "error binding params to bothsuck statement: ".$db->error );
+		}
+		if( !($statement->execute()) ) {
+			throw new Exception( "error executing config bothsuck statement: ".$db->error );
+		}
+		if( $statement->affected_rows == 0 ) {
+			throw new Exception( "error: bothsuck statement didn't seem to affect any rows: ".$db->error );
+		}
+		header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+	}
+
 	function do_vote() {
 		global $db;
 		if( !array_key_exists( "url", $_POST ) ) {
