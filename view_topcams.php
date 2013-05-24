@@ -1,3 +1,17 @@
+<script>
+	$(document).ready(function(){
+		$(document).keypress(function(ev){
+			if( ev.keyCode == 37 ) {
+				if( $("#backlink" ).length > 0 ) {
+					document.location = $("#backlink").attr( "href" );
+				}
+			} else if( ev.keyCode == 39 ) {
+				document.location = $("#nextlink").attr( "href" );
+			}
+		});
+	});
+</script>
+<div style='text-align: center;'>Left and Right arrows can be used to browse this list.</div>
 <?php
 	global $db;
 	$limit = 8;
@@ -44,7 +58,7 @@
 	}
 	print( "<div style='clear: both;'>&nbsp;</div>" );
 	if( $offset > 0 ) {
-		print( "<div style='width: 49%; float: left; text-align: right;'><a href='?action=topcams&offset=".htmlentities( urlencode( $offset - 8 ) )."'>&lt; &lt; &lt; Back</a>&nbsp;</div>" );
+		print( "<div style='width: 49%; float: left; text-align: right;'><a href='?action=topcams&offset=".htmlentities( urlencode( $offset - 8 ) )."' id='backlink'>&lt; &lt; &lt; Back</a>&nbsp;</div>" );
 	}
-	print( "<div style='width: 51%; float: right;'> | <a href='?action=topcams&offset=".htmlentities( urlencode( $offset + 8 ) )."'>Next &gt; &gt; &gt;</a></div>" );
+	print( "<div style='width: 51%; float: right;'> | <a href='?action=topcams&offset=".htmlentities( urlencode( $offset + 8 ) )."' id='nextlink'>Next &gt; &gt; &gt;</a></div>" );
 ?>
