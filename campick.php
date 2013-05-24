@@ -1,8 +1,5 @@
 <?php
-	$db_user = "campick";
-	$db_pass = "im3ahKae5ruGhaeY";
-	$db_db   = "campick";
-	$db_host = "localhost";
+	include_once( "dbspecs.php" );
 	$db = load_or_create_db( );
 
 	session_start();
