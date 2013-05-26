@@ -69,6 +69,7 @@
 		print( "</div>\n" );
 	}
 	print( "<div style='clear: both;'>&nbsp;</div>" );
+	$_SESSION[ "offset" ] = $offset;
 	if( $offset > 0 ) {
 		print( "<div style='width: 49%; float: left; text-align: right;'><a href='?action=topcams&offset=".htmlentities( urlencode( $offset - 8 ) )."' id='backlink'>&lt; &lt; &lt; Back</a>&nbsp;</div>" );
 	}

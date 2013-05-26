@@ -49,7 +49,11 @@
 		if( $statement->affected_rows == 0 ) {
 			throw new Exception( "error: report statement didn't seem to affect any rows: ".$db->error );
 		}
-		header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+		if( array_key_exists( "back", $_POST ) && ( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) ) {
+			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+		} else {
+			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+		}
 		exit;
 	}
 
@@ -84,8 +88,8 @@
 		if( !($statement->execute()) ) {
 			throw new Exception( "error executing config clear_reports statement: ".$db->error );
 		}
-		if( $_POST[ "back" ] == "reports" ) {
-			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=reports" );
+		if( array_key_exists( "back", $_POST ) && ( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) ) {
+			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
 		} else {
 			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
 		}

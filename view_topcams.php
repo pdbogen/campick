@@ -1,4 +1,5 @@
 <?php
+	global $admin;
 	global $db;
 	$limit = 8;
 	$offset = 0;
@@ -41,24 +42,39 @@
 			}
 		});
 	});
+	function nuke( imgnum ) {
+<?php if( $admin ) { ?>
+		$(document.body).append( "<form id='nukeform' method='POST'><input type='hidden' name='action' value='nuke'><input type='hidden' name='url' id='urlinput'><input type='hidden' name='back' value='topcams'></form>" );
+<?php } else { ?>
+		$(document.body).append( "<form id='nukeform' method='POST'><input type='hidden' name='action' value='report'><input type='hidden' name='url' id='urlinput'><input type='hidden' name='back' value='topcams'></form>" );
+<?php } ?>
+		$("#urlinput").val( $("#"+imgnum).attr( "src" ) );
+		$("#nukeform").submit();
+	}
 </script>
 <div style='text-align: center;'>Left and Right arrows can be used to browse this list.</div>
 <?php
-	$i = 0;
+	$i = 0; $j = 0;
 	foreach( $a_ret as $cam ) {
-		$i++;
+		$i++; $j++;
 		if( $i > 4 ) {
 			print( "<div style='clear: both;'>&nbsp;</div>" );
 			$i = 0;
 		}
 		print( "<div style='width:25%;float: left;'>" );
 		print( "<a href='".htmlentities( $cam[0] )."'>" );
-		print( "<img src='".htmlentities( $cam[0] )."' style='width:90%;'><br/>" );
+		print( "<img id='img".$j."' src='".htmlentities( $cam[0] )."' style='width:90%;'><br/>" );
 		print( "</a>" );
 		print( htmlentities( $cam[1] )." votes" );
+		if( $admin ) {?>
+			<a href='#' onclick='nuke( "img<?php print $j; ?>" );'>nuke this<a>
+<?php	} else { ?>
+			<a href='#' onclick='nuke( "img<?php print $j; ?>" );'>report broken<a>
+<?php	}
 		print( "</div>" );
 	}
 	print( "<div style='clear: both;'>&nbsp;</div>" );
+	$_SESSION[ "offset" ] = $offset;
 	if( $offset > 0 ) {
 		print( "<div style='width: 49%; float: left; text-align: right;'><a href='?action=topcams&offset=".htmlentities( urlencode( $offset - 8 ) )."' id='backlink'>&lt; &lt; &lt; Back</a>&nbsp;</div>" );
 	}
