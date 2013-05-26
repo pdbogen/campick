@@ -1,17 +1,3 @@
-<script>
-	$(document).ready(function(){
-		$(document).keypress(function(ev){
-			if( ev.keyCode == 37 ) {
-				if( $("#backlink" ).length > 0 ) {
-					document.location = $("#backlink").attr( "href" );
-				}
-			} else if( ev.keyCode == 39 ) {
-				document.location = $("#nextlink").attr( "href" );
-			}
-		});
-	});
-</script>
-<div style='text-align: center;'>Left and Right arrows can be used to browse this list.</div>
 <?php
 	global $db;
 	$limit = 8;
@@ -42,6 +28,22 @@
 		array_push( $a_ret, Array( $ret_url, $ret_votes ) );
 	}
 	$statement->free_result();
+?>
+<script>
+	$(document).ready(function(){
+		$(document).keypress(function(ev){
+			if( ev.keyCode == 37 ) {
+				if( $("#backlink" ).length > 0 ) {
+					document.location = $("#backlink").attr( "href" );
+				}
+			} else if( ev.keyCode == 39 ) {
+				document.location = $("#nextlink").attr( "href" );
+			}
+		});
+	});
+</script>
+<div style='text-align: center;'>Left and Right arrows can be used to browse this list.</div>
+<?php
 	$i = 0;
 	foreach( $a_ret as $cam ) {
 		$i++;
