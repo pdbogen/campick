@@ -37,16 +37,8 @@
 			render( "nope" );
 			exit;
 		}
-		if( !($statement = $db->prepare( "INSERT INTO reports VALUES (?,1) ON DUPLICATE KEY UPDATE reports = reports+1" )) ) {
-			throw new Exception( "failed to prepare report statement: ".$db->error );
-		}
-		if( !($statement->bind_param( "s", $_POST[ "url" ] )) ) {
-			throw new Exception( "error binding params to report statement: ".$db->error );
-		}
-		if( !($statement->execute()) ) {
-			throw new Exception( "error executing config report statement: ".$db->error );
-		}
-		if( $statement->affected_rows == 0 ) {
+		$affected_rows = execute( "INSERT INTO reports VALUES (?,1) ON DUPLICATE KEY UPDATE reports = reports+1", "s", Array( $_POST[ "url" ] ), "report statement" );
+		if( $affected_rows == 0 ) {
 			throw new Exception( "error: report statement didn't seem to affect any rows: ".$db->error );
 		}
 		if( array_key_exists( "back", $_POST ) && ( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) ) {
@@ -64,30 +56,14 @@
 			render( "nope" );
 			exit;
 		}
-		if( !($statement = $db->prepare( "DELETE FROM cameras WHERE camera_url=?" )) ) {
-			throw new Exception( "failed to prepare nuke statement: ".$db->error );
-		}
-		if( !($statement->bind_param( "s", $_POST[ "url" ] )) ) {
-			throw new Exception( "error binding params to nuke statement: ".$db->error );
-		}
-		if( !($statement->execute()) ) {
-			throw new Exception( "error executing config nuke statement: ".$db->error );
-		}
+		execute( "DELETE FROM cameras WHERE camera_url=?", "s", Array( $_POST[ "url" ] ), "nuke statement" );
 		do_clear_reports();
 	}
 
 	function do_clear_reports() {
 		require_admin();
 		global $db;
-		if( !($statement = $db->prepare( "DELETE FROM reports WHERE url=?" )) ) {
-			throw new Exception( "failed to prepare clear_reports statement: ".$db->error );
-		}
-		if( !($statement->bind_param( "s", $_POST[ "url" ] )) ) {
-			throw new Exception( "error binding params to clear_reports statement: ".$db->error );
-		}
-		if( !($statement->execute()) ) {
-			throw new Exception( "error executing config clear_reports statement: ".$db->error );
-		}
+		execute( "DELETE FROM reports WHERE url=?", "s", Array( $_POST[ "url" ] ), "clear_repots statement" );
 		if( array_key_exists( "back", $_POST ) && ( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) ) {
 			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
 		} else {
@@ -98,26 +74,11 @@
 
 	function do_bothsuck() {
 		global $db;
-		if( !array_key_exists( "url1", $_POST ) ) {
+		if( !array_key_exists( "url1", $_POST ) || !array_key_exists( "url2", $_POST ) ) {
 			render( "nope" );
 			exit;
 		}
-		if( !array_key_exists( "url2", $_POST ) ) {
-			render( "nope" );
-			exit;
-		}
-		if( !($statement = $db->prepare( "UPDATE cameras SET camera_votes = camera_votes-1 WHERE camera_url=? OR camera_url=?" )) ) {
-			throw new Exception( "failed to prepare bothsuck statement: ".$db->error );
-		}
-		if( !($statement->bind_param( "ss", $_POST[ "url1" ], $_POST[ "url2" ] )) ) {
-			throw new Exception( "error binding params to bothsuck statement: ".$db->error );
-		}
-		if( !($statement->execute()) ) {
-			throw new Exception( "error executing config bothsuck statement: ".$db->error );
-		}
-		if( $statement->affected_rows == 0 ) {
-			throw new Exception( "error: bothsuck statement didn't seem to affect any rows: ".$db->error );
-		}
+		execute( "UPDATE cameras SET camera_votes = camera_votes-1 WHERE camera_url=? OR camera_url=?", "ss", Array( $_POST[ "url1" ], $_POST[ "url2" ] ), "bothsuck statement" );
 		header( "Location: ".$_SERVER[ "PHP_SELF" ] );
 	}
 
@@ -127,18 +88,7 @@
 			render( "nope" );
 			exit;
 		}
-		if( !($statement = $db->prepare( "UPDATE cameras SET camera_votes = camera_votes+1 WHERE camera_url=?" )) ) {
-			throw new Exception( "failed to prepare vote statement: ".$db->error );
-		}
-		if( !($statement->bind_param( "s", $_POST[ "url" ] )) ) {
-			throw new Exception( "error binding params to vote statement: ".$db->error );
-		}
-		if( !($statement->execute()) ) {
-			throw new Exception( "error executing config vote statement: ".$db->error );
-		}
-		if( $statement->affected_rows == 0 ) {
-			throw new Exception( "error: vote statement didn't seem to affect any rows: ".$db->error );
-		}
+		execute( "UPDATE cameras SET camera_votes = camera_votes+1 WHERE camera_url=?", "s", Array( $_POST[ "url" ] ), "vote statement" );
 		header( "Location: ".$_SERVER[ "PHP_SELF" ] );
 		exit;
 	}
@@ -169,7 +119,7 @@
 			$cameras = explode( "\n", $_POST[ "import" ] );
 			$start = microtime( TRUE );
 			foreach( $cameras as $c ) {
-				camera_add( trim($c) );
+				execute( "INSERT INTO camera (camera_url, camera_votes) VALUES (?,0)", "s", trim($c), "camera insert statement" );
 			}
 			error_log( "import duration: ".(microtime( TRUE ) - $start)."s" );
 			header( "Location: ".$_SERVER[ "REQUEST_URI" ] );
@@ -188,6 +138,7 @@
 				header( "Location: ".$_SERVER[ "REQUEST_URI" ] );
 				return TRUE;
 			} else {
+				error_log( "failed login attempt" );
 				render( "nope" );
 			}
 		} else {
@@ -269,26 +220,6 @@
 		}
     }
 
-	function camera_add( $url ) {
-		global $db;
-		static $statement = NULL;
-		if( $statement == NULL ) {
-			if( !($statement = $db->prepare( "INSERT INTO cameras (camera_url,camera_votes) VALUES (?,0)" )) ) {
-				throw new Exception( "Failed to prepare camera insert statement: ".$db->error() );
-			}
-		}
-		if( !($statement->bind_param( "s", $url )) ) {
-			throw new Exception( "Failed to bind camera URL to insert statement: ".$db->error() );
-		}
-		if( !($statement->execute()) ) {
-			throw new Exception( "Failed to execute camear insert statement: ".$db->error() );
-		}
-		if( $statement->affected_rows == 0 ) {
-			throw new Exception( "Camera insert statement affected 0 rows? ".$db->error() );
-		}
-		return TRUE;
-	}
-
 	function config( $key, $value = NULL ) {
 		global $db;
 		static $db_cache = Array();
@@ -320,23 +251,37 @@
 				$db_cache[ $key ] = $val;
 			}
 		} else {
-			if( is_null( $set_statement ) ) {
-				if( !($set_statement = $db->prepare( "INSERT INTO config VALUES (?,?) ON DUPLICATE KEY UPDATE config_value=?" )) ) {
-					throw new Exception( "error preparing config set statement: ".$db->error );
-				}
-			}
-			if( !($set_statement->bind_param( "sss", $key, $value, $value )) ) {
-				throw new Exception( "error binding params to set statement: ".$db->error );
-			}
-			if( !($set_statement->execute()) ) {
-				throw new Exception( "error executing config set statement: ".$db->error );
-			}
-			if( $set_statement->affected_rows == 0 ) {
-				throw new Exception( "config set didn't seem to affect any rows: ".$db->error );
-			}
+			execute( "INSERT INTO config VALUES (?,?) ON DUPLICATE KEY UPDATE config_value=?", "sss", Array( $key, $value, $value ), "config set statement" );
 			$db_cache[ $key ] = $value;
 		}
 		return $db_cache[ $key ];
+	}
+
+	function execute( $sql, $types = NULL, $args = NULL, $desc = "unknown query" ) {
+		global $db;
+		static $st_cache = Array();
+		if( array_key_exists( $sql, $st_cache ) ) {
+			$statement = $st_cache[ $sql ];
+		} else {
+			if( !($statement = $db->prepare( $sql ) ) ) {
+				throw new Exception( "failed to prepare $desc ($sql): ".$db->error );
+			}
+			$st_cache[ $sql ] = $statement;
+		}
+		if( $types !== NULL ) {
+			for( $i = 0; $i < strlen( $types ); $i++ ) {
+				if( !array_key_exists( $i, $args ) ) {
+					throw new Exception( "error executing $desc ($sql): more argument types than arguments" );
+				}
+				if( !($statement->bind_param( substr( $types, $i, 1 ), $args[$i] )) ) {
+					throw new Exception( "error binding ".$i."th param to $desc ($sql): ".$db->error );
+				}
+			}
+		}
+		if( !($statement->execute()) ) {
+			throw new Exception( "error executing config $desc ($sql): ".$db->error );
+		}
+		return $statement->affected_rows;
 	}
 
 	function load_or_create_db( ) {
