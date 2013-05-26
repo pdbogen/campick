@@ -133,6 +133,7 @@
 		$ip = $_SERVER[ "REMOTE_ADDR" ];
 		if( config( "lockout_$ip" ) > time() ) {
 			render( "nope" );
+			error_log( "failed login attempt (locked out)" );
 			return FALSE;
 		}
 		if( array_key_exists( "password", $_POST ) ) {
@@ -146,7 +147,7 @@
 			} else {
 				$attempts = config( "attempts_$ip" ) + 1;
 				config( "attempts_$ip", $attempts );
-				error_log( "failed login attempt" );
+				error_log( "failed login attempt (bad password)" );
 				if( $attempts >= 3 ) {
 					error_log( "locked out until ".(time()+300) );
 					config( "lockout_$ip", (time()+300) );
