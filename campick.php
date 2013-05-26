@@ -39,7 +39,7 @@
 		}
 		$affected_rows = execute( "INSERT INTO reports VALUES (?,1) ON DUPLICATE KEY UPDATE reports = reports+1", "s", Array( $_POST[ "url" ] ), "report statement" );
 		if( $affected_rows == 0 ) {
-			throw new Exception( "error: report statement didn't seem to affect any rows: ".$db->error );
+			throw new Exception( "error: report statement didn't seem to affect any rows" );
 		}
 		if( array_key_exists( "back", $_POST ) && ( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) ) {
 			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
@@ -130,15 +130,27 @@
 	}
 
 	function do_login() {
+		$ip = $_SERVER[ "REMOTE_ADDR" ];
+		if( config( "lockout_$ip" ) > time() ) {
+			render( "nope" );
+			return FALSE;
+		}
 		if( array_key_exists( "password", $_POST ) ) {
 			$salt = config( "admin_salt" );
 			if( hash( 'sha256', $salt.$_POST[ "password" ] ) == config( "admin_password" ) ) {
+				config( "attempts_$ip", 0 );
 				session_regenerate_id( TRUE );
 				$_SESSION[ "admin" ] = 1;
 				header( "Location: ".$_SERVER[ "REQUEST_URI" ] );
 				return TRUE;
 			} else {
+				$attempts = config( "attempts_$ip" ) + 1;
+				config( "attempts_$ip", $attempts );
 				error_log( "failed login attempt" );
+				if( $attempts >= 3 ) {
+					error_log( "locked out until ".(time()+300) );
+					config( "lockout_$ip", (time()+300) );
+				}
 				render( "nope" );
 			}
 		} else {
@@ -156,16 +168,16 @@
 				}
 			}
 			if( !($statement->bind_param( "s", $not )) ) {
-				throw new Exception( "failed to bind param to statement to pick a second camera: ".$db->error );
+				throw new Exception( "failed to bind param to statement to pick a second camera: ".$statement->error );
 			}
 			if( !($statement->execute()) ) {
-				throw new Exception( "failed to execute statement to pick a second camera: ".$db->error );
+				throw new Exception( "failed to execute statement to pick a second camera: ".$statement->error );
 			}
 			if( !($statement->bind_result( $ret_url, $ret_votes )) ) {
-				throw new Exception( "failed to bind result parameter to statement to pick a second camera: ".$db->error );
+				throw new Exception( "failed to bind result parameter to statement to pick a second camera: ".$statement->error );
 			}
 			if( ($ret = $statement->fetch()) === FALSE ) {
-				throw new Exception( "failed to execute fetch on statement to pick a second camera: ".$db->error );
+				throw new Exception( "failed to execute fetch on statement to pick a second camera: ".$statement->error );
 			}
 			if( $ret === NULL ) {
 				return NULL;
@@ -233,16 +245,16 @@
 					}
 				}
 				if( !($get_statement->bind_param( "s", $key )) ) {
-					throw new Exception( "error binding key param to get statement: ".$db->error );
+					throw new Exception( "error binding key param to get statement: ".$get_statement->error );
 				}
 				if( !($get_statement->execute()) ) {
-					throw new Exception( "error executing config get statement: ".$db->error );
+					throw new Exception( "error executing config get statement: ".$get_statement->error );
 				}
 				if( !($get_statement->bind_result($val)) ) {
-					throw new Exception( "error binding result to config get statement: ".$db->error );
+					throw new Exception( "error binding result to config get statement: ".$get_statement->error );
 				}
 				if( $fetch_result = $get_statement->fetch() === FALSE ) {
-					throw new Exception( "error fetching result for config get statement: ".$db->error );
+					throw new Exception( "error fetching result for config get statement: ".$get_statement->error );
 				}
 				$get_statement->free_result();
 				if( $fetch_result === NULL ) {
@@ -269,17 +281,18 @@
 			$st_cache[ $sql ] = $statement;
 		}
 		if( $types !== NULL ) {
-			for( $i = 0; $i < strlen( $types ); $i++ ) {
-				if( !array_key_exists( $i, $args ) ) {
-					throw new Exception( "error executing $desc ($sql): more argument types than arguments" );
-				}
-				if( !($statement->bind_param( substr( $types, $i, 1 ), $args[$i] )) ) {
-					throw new Exception( "error binding ".$i."th param to $desc ($sql): ".$db->error );
-				}
+			$reflection = new ReflectionClass( "mysqli_stmt" );
+			$method     = $reflection->getMethod( "bind_param" );
+			$invoke_args = Array( $types );
+			foreach( $args as $k=>$v ) {
+				array_push( $invoke_args, &$args[$k] );
+			}
+			if( !($method->invokeArgs( $statement, $invoke_args )) ) {
+				throw new Exception( "error binding params to $desc ($sql): ".$statement->error );
 			}
 		}
 		if( !($statement->execute()) ) {
-			throw new Exception( "error executing config $desc ($sql): ".$db->error );
+			throw new Exception( "error executing config $desc ($sql): ".$statement->error );
 		}
 		return $statement->affected_rows;
 	}
