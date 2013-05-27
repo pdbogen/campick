@@ -46,9 +46,22 @@
 			}
 		});
 	});
+	function setmode(mode) {
+		$(document.body).append( "<form id='modeform' method='POST'><input type='hidden' name='action' value='set_mode'><input type='hidden' name='mode' id='modeinput'></form>" );
+		$("#modeinput").val( mode );
+		$("#modeform").submit();
+	}
 </script>
 
 <div style='margin-left: auto; margin-right: auto; text-align: center;'>
+	Browsing Mode: 
+<?php
+	if( $_SESSION[ "mode" ] == "top10" ) { print( "top 10%" ); } else { print( "<a href='#' onclick='setmode( \"top10\" );'>top 10%</a>" ); }
+	print( " | " );
+	if( $_SESSION[ "mode" ] == "normal" ) { print( "normal" ); } else { print( "<a href='#' onclick='setmode( \"normal\" );'>normal</a>" ); }
+	print( " | " );
+	if( $_SESSION[ "mode" ] == "virgin" ) { print( "virgin" ); } else { print( "<a href='#' onclick='setmode( \"virgin\" );'>virgin</a>" ); }
+?><br/>
 	Click on the webcam (or press left or right arrow) that's more interesting/more evil/more naked/more whatever.<br/>
 	Press down if they both suck.<br/>
 	<div style='width:45%; float: left;'><a href='#' onclick='nuke("leftimg"); return false;'><?php if( $admin ) { print( "Nuke This" ); } else { print( "Broken Image?" ); } ?></a></div>
