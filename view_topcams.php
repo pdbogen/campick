@@ -9,8 +9,14 @@
 	if( array_key_exists( "offset", $_GET ) ) {
 		$offset = $_GET[ "offset" ];
 	}
-	if( !($statement = $db->prepare( "SELECT camera_url, camera_votes FROM cameras ORDER BY camera_votes DESC LIMIT ? OFFSET ?")) ) {
-		throw new Exception( "failed to prepare statement to pick top cameras: ".$db->error );
+	if( array_key_exists( "bottom", $_GET ) ) {
+		if( !($statement = $db->prepare( "SELECT camera_url, camera_votes FROM cameras ORDER BY camera_votes ASC LIMIT ? OFFSET ?")) ) {
+			throw new Exception( "failed to prepare statement to pick top cameras: ".$db->error );
+		}
+	} else {
+		if( !($statement = $db->prepare( "SELECT camera_url, camera_votes FROM cameras ORDER BY camera_votes DESC LIMIT ? OFFSET ?")) ) {
+			throw new Exception( "failed to prepare statement to pick top cameras: ".$db->error );
+		}
 	}
 	if( !($statement->bind_param( "ii", $limit, $offset )) ) {
 		throw new Exception( "failed to bind params to statement to pick top cameras: ".$db->error );
@@ -43,17 +49,29 @@
 		});
 	});
 	function nuke( imgnum ) {
-<?php if( $admin ) { ?>
-		$(document.body).append( "<form id='nukeform' method='POST'><input type='hidden' name='action' value='nuke'><input type='hidden' name='url' id='urlinput'><input type='hidden' name='back' value='topcams'></form>" );
-<?php } else { ?>
-		$(document.body).append( "<form id='nukeform' method='POST'><input type='hidden' name='action' value='report'><input type='hidden' name='url' id='urlinput'><input type='hidden' name='back' value='topcams'></form>" );
-<?php } ?>
+		$(document.body).append( "<form id='nukeform' method='POST'><?php
+if( $admin ) {
+		print( "<input type='hidden' name='action' value='nuke'>" );
+} else {
+		print( "<input type='hidden' name='action' value='report'>" );
+}
+print( "<input type='hidden' name='url' id='urlinput'>" );
+if( array_key_exists( "bottom", $_GET ) ) {
+		print( "<input type='hidden' name='back' value='bottomcams'>" );
+} else {
+		print( "<input type='hidden' name='back' value='topcams'>" );
+} ?></form>" );
 		$("#urlinput").val( $("#"+imgnum).attr( "src" ) );
 		$("#nukeform").submit();
 	}
 </script>
 <div style='text-align: center;'>Left and Right arrows can be used to browse this list.</div>
+<?php if( array_key_exists( "bottom", $_GET ) ) { ?>
+<div style='text-align: center;'>View <a href='?action=topcams'>top cameras</a> instead.</div>
+<?php } else { ?>
+<div style='text-align: center;'>View <a href='?action=topcams&bottom'>bottom cameras</a> instead.</div>
 <?php
+	}
 	$i = 0; $j = 0;
 	foreach( $a_ret as $cam ) {
 		$i++; $j++;
@@ -76,7 +94,15 @@
 	print( "<div style='clear: both;'>&nbsp;</div>" );
 	$_SESSION[ "offset" ] = $offset;
 	if( $offset > 0 ) {
-		print( "<div style='width: 49%; float: left; text-align: right;'><a href='?action=topcams&offset=".htmlentities( urlencode( $offset - 8 ) )."' id='backlink'>&lt; &lt; &lt; Back</a>&nbsp;</div>" );
+		print( "<div style='width: 49%; float: left; text-align: right;'><a href='?action=topcams" );
+		if( array_key_exists( "bottom", $_GET ) ) {
+			print( "&bottom" );
+		}
+		print( "&offset=".htmlentities( urlencode( $offset - 8 ) )."' id='backlink'>&lt; &lt; &lt; Back</a>&nbsp;</div>" );
 	}
-	print( "<div style='width: 51%; float: right;'> | <a href='?action=topcams&offset=".htmlentities( urlencode( $offset + 8 ) )."' id='nextlink'>Next &gt; &gt; &gt;</a></div>" );
+	print( "<div style='width: 51%; float: right;'> | <a href='?action=topcams" );
+	if( array_key_exists( "bottom", $_GET ) ) {
+		print( "&bottom" );
+	}
+	print( "&offset=".htmlentities( urlencode( $offset + 8 ) )."' id='nextlink'>Next &gt; &gt; &gt;</a></div>" );
 ?>

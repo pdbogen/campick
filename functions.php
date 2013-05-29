@@ -36,8 +36,14 @@
 		if( $affected_rows == 0 ) {
 			throw new Exception( "error: report statement didn't seem to affect any rows" );
 		}
-		if( array_key_exists( "back", $_POST ) && ( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) ) {
-			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+		if( array_key_exists( "back", $_POST ) ) {
+			if( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} elseif( $_POST[ "back" ] == "bottomcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=topcams&bottom&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} else {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+			}
 		} else {
 			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
 		}
@@ -59,8 +65,14 @@
 		require_admin();
 		global $db;
 		execute( "DELETE FROM reports WHERE url=?", "s", Array( $_POST[ "url" ] ), "clear_repots statement" );
-		if( array_key_exists( "back", $_POST ) && ( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) ) {
-			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+		if( array_key_exists( "back", $_POST ) ) {
+			if( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} elseif( $_POST[ "back" ] == "bottomcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=topcams&bottom&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} else {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+			}
 		} else {
 			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
 		}
