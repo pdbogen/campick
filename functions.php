@@ -36,8 +36,14 @@
 		if( $affected_rows == 0 ) {
 			throw new Exception( "error: report statement didn't seem to affect any rows" );
 		}
-		if( array_key_exists( "back", $_POST ) && ( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) ) {
-			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+		if( array_key_exists( "back", $_POST ) ) {
+			if( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} elseif( $_POST[ "back" ] == "bottomcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=topcams&bottom&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} else {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+			}
 		} else {
 			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
 		}
@@ -59,8 +65,14 @@
 		require_admin();
 		global $db;
 		execute( "DELETE FROM reports WHERE url=?", "s", Array( $_POST[ "url" ] ), "clear_repots statement" );
-		if( array_key_exists( "back", $_POST ) && ( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) ) {
-			header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+		if( array_key_exists( "back", $_POST ) ) {
+			if( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} elseif( $_POST[ "back" ] == "bottomcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=topcams&bottom&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} else {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+			}
 		} else {
 			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
 		}
@@ -302,15 +314,22 @@
 		if( $db->connect_errno != 0 ) {
 			throw new Exception( "failed to connect to database: ".$db->connect_error );
 		}
-		if( !$db->real_query( "CREATE TABLE IF NOT EXISTS config ( config_key VARCHAR(128) PRIMARY KEY, config_value TEXT )" ) ) {
-			throw new Exception( "failed to create config table: ".$db->error );
+		$shm_key = ftok( __FILE__, 't' );
+		$shm_id = shmop_open( $shm_key, "a", 0, 0 );
+		if( $shm_id === FALSE ) {
+			$shm_id = shmop_open( $shm_key, "c", 0600, 1 );
+			error_log( "no shared memory space, checking if we need to initialize DB" );
+			if( !$db->real_query( "CREATE TABLE IF NOT EXISTS config ( config_key VARCHAR(128) PRIMARY KEY, config_value TEXT )" ) ) {
+				throw new Exception( "failed to create config table: ".$db->error );
+			}
+			if( !$db->real_query( "CREATE TABLE IF NOT EXISTS cameras ( camera_id SERIAL PRIMARY KEY, camera_url TEXT , camera_votes INTEGER )" ) ) {
+				throw new Exception( "failed to create cameras table: ".$db->error );
+			}
+			if( !$db->real_query( "CREATE TABLE IF NOT EXISTS reports ( url TEXT, reports INTEGER )" ) ) {
+				throw new Exception( "failed to create reports table: ".$db->error );
+			}
 		}
-		if( !$db->real_query( "CREATE TABLE IF NOT EXISTS cameras ( camera_id SERIAL PRIMARY KEY, camera_url TEXT , camera_votes INTEGER )" ) ) {
-			throw new Exception( "failed to create cameras table: ".$db->error );
-		}
-		if( !$db->real_query( "CREATE TABLE IF NOT EXISTS reports ( url TEXT, reports INTEGER )" ) ) {
-			throw new Exception( "failed to create reports table: ".$db->error );
-		}
+		shmop_close( $shm_id );
 		return $db;
 	}
 
