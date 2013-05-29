@@ -32,8 +32,7 @@
 	if( array_key_exists( "offset", $_GET ) ) {
 		$offset = $_GET[ "offset" ];
 	}
-	$start_time = microtime( TRUE );
-	if( !($statement = $db->prepare( "SELECT camera_url, reports FROM cameras INNER JOIN reports ON cameras.camera_url = reports.url ORDER BY reports DESC LIMIT ? OFFSET ?")) ) {
+	if( !($statement = $db->prepare( "SELECT url, reports FROM reports ORDER BY reports DESC LIMIT ? OFFSET ?")) ) {
 		throw new Exception( "failed to prepare statement to pick top cameras: ".$db->error );
 	}
 	if( !($statement->bind_param( "ii", $limit, $offset )) ) {
@@ -53,7 +52,6 @@
 		array_push( $a_ret, Array( $ret_url, $ret_votes ) );
 	}
 	$statement->free_result();
-	error_log( "view_reports query duration: ".(microtime( TRUE ) - $start_time)."s" );
 	$i = 0; $j = 0;
 	foreach( $a_ret as $cam ) {
 		$i++; $j++;
