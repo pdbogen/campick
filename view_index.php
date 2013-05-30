@@ -24,6 +24,11 @@
 		$("#url2input").val( $("#rightimg").attr( "src" ) );
 		$("#voteform").submit();
 	}
+	function star(which) {
+		$(document.body).append( "<form id='starform' method='POST'><input type='hidden' name='action' value='star'><input type='hidden' name='url' id='urlinput'></form>" );
+		$("#urlinput").val( $("#"+which).attr( "src" ) );
+		$("#starform").submit();
+	}
 	function nuke(which) {
 <?php if( $admin ) { ?>
 		$(document.body).append( "<form id='nukeform' method='POST'><input type='hidden' name='action' value='nuke'><input type='hidden' name='url' id='urlinput'></form>" );
@@ -55,7 +60,25 @@
 	<div style='width:45%; float: right;'><a href='#' onclick='nuke("rightimg"); return false;'><?php if( $admin ) { print( "Nuke This" ); } else { print( "Broken Image?" ); } ?></a></div>
 	<img id='leftimg' src='<?php print htmlentities( $img1[0] ); ?>' width='45%' onclick='vote(this);'>
 	<img id='rightimg' src='<?php print htmlentities( $img2[0] ); ?>' width='45%' onclick='vote(this);'> <br/>
-	<div style='width:45%; float: left;'><?php print htmlentities( $img1[1] ); ?> vote(s)</div>
-	<div style='width:45%; float: right;'><?php print htmlentities( $img2[1] ); ?> vote(s)</div>
+	<div style='width:45%; float: left;'>
+<?php
+	if( $admin ) {
+		print( "<a href='#' onclick='star(\"leftimg\")'><img src='bookmark-3".($img1[2]?"":"-mono").".png'></a>" );
+	} else {
+		print( "<img id='leftheart' src='bookmark-3".($img1[2]?"":"-mono").".png'>" );
+	}
+?>
+		<?php print htmlentities( $img1[1] ); ?> vote(s)
+	</div>
+	<div style='width:45%; float: right;'>
+<?php
+	if( $admin ) {
+		print( "<a href='#' onclick='star(\"rightimg\")'><img src='bookmark-3".($img2[2]?"":"-mono").".png'></a>" );
+	} else {
+		print( "<img id='leftheart' src='bookmark-3".($img2[2]?"":"-mono").".png'>" );
+	}
+?>
+		<?php print htmlentities( $img2[1] ); ?> vote(s)
+	</div>
 	<div style='text-align: center; clear: both;'><a href='#' onclick='bothsuck();return false;'>Both Suck</a></div>
 </div>

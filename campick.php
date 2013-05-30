@@ -1,6 +1,7 @@
 <?php
 	include_once( "functions.php" );
 	$db = load_or_create_db( );
+	upgrade_db();
 
 	init_session();
 	check_admin();

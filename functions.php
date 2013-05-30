@@ -1,6 +1,8 @@
 <?php
 	include_once( "dbspecs.php" );
 
+	define( "CURRENT_VERSION", 1 );
+
 	function do_index() {
 		render( "index" );
 	}
@@ -36,17 +38,7 @@
 		if( $affected_rows == 0 ) {
 			throw new Exception( "error: report statement didn't seem to affect any rows" );
 		}
-		if( array_key_exists( "back", $_POST ) ) {
-			if( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) {
-				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
-			} elseif( $_POST[ "back" ] == "bottomcams" ) {
-				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=topcams&bottom&offset=".urlencode( $_SESSION[ "offset" ] ) );
-			} else {
-				header( "Location: ".$_SERVER[ "PHP_SELF" ] );
-			}
-		} else {
-			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
-		}
+		redirect_back();
 		exit;
 	}
 
@@ -65,17 +57,7 @@
 		require_admin();
 		global $db;
 		execute( "DELETE FROM reports WHERE url=?", "s", Array( $_POST[ "url" ] ), "clear_repots statement" );
-		if( array_key_exists( "back", $_POST ) ) {
-			if( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) {
-				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
-			} elseif( $_POST[ "back" ] == "bottomcams" ) {
-				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=topcams&bottom&offset=".urlencode( $_SESSION[ "offset" ] ) );
-			} else {
-				header( "Location: ".$_SERVER[ "PHP_SELF" ] );
-			}
-		} else {
-			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
-		}
+		redirect_back();
 		exit;
 	}
 
@@ -97,6 +79,18 @@
 		}
 		execute( "UPDATE cameras SET camera_votes = camera_votes+1 WHERE camera_url=?", "s", Array( $_POST[ "url" ] ), "vote statement" );
 		header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+		exit;
+	}
+
+	function do_star() {
+		global $db;
+		check_admin();
+		if( !array_key_exists( "url", $_POST ) ) {
+			render( "nope" );
+			exit;
+		}
+		execute( "UPDATE cameras SET starred = !starred WHERE camera_url=?", "s", Array( $_POST[ "url" ] ), "vote statement" );
+		redirect_back();
 		exit;
 	}
 
@@ -171,7 +165,7 @@
 		static $statement = NULL;
 		if( $not !== NULL ) {
 			if( $statement === NULL ) {
-				if( !($statement = $db->prepare( "SELECT camera_url, camera_votes FROM cameras WHERE camera_url != ? ORDER BY RAND() LIMIT 1" )) ) {
+				if( !($statement = $db->prepare( "SELECT camera_url, camera_votes, starred FROM cameras WHERE camera_url != ? ORDER BY RAND() LIMIT 1" )) ) {
 					throw new Exception( "failed to prepare statement to pick a second camera: ".$db->error );
 				}
 			}
@@ -181,7 +175,7 @@
 			if( !($statement->execute()) ) {
 				throw new Exception( "failed to execute statement to pick a second camera: ".$statement->error );
 			}
-			if( !($statement->bind_result( $ret_url, $ret_votes )) ) {
+			if( !($statement->bind_result( $ret_url, $ret_votes, $ret_starred )) ) {
 				throw new Exception( "failed to bind result parameter to statement to pick a second camera: ".$statement->error );
 			}
 			if( ($ret = $statement->fetch()) === FALSE ) {
@@ -191,9 +185,9 @@
 				return NULL;
 			}
 			$statement->free_result();
-			return Array( $ret_url, $ret_votes );
+			return Array( $ret_url, $ret_votes, $ret_starred );
 		} else {
-			if( !($result = $db->query( "SELECT camera_url, camera_votes FROM cameras ORDER BY RAND() LIMIT 1" )) ) {
+			if( !($result = $db->query( "SELECT camera_url, camera_votes, starred FROM cameras ORDER BY RAND() LIMIT 1" )) ) {
 				throw new Exception( "failed to pick a camera: ".$db->error );
 			}
 		}
@@ -202,7 +196,7 @@
 			return NULL;
 		}
 		$ret = $result->fetch_array();
-		$ret = Array( $ret[0], $ret[1] );
+		$ret = Array( $ret[0], $ret[1], $ret[2] );
 		$result->free();
 		return $ret;
 	}
@@ -308,6 +302,14 @@
 		return $statement->affected_rows;
 	}
 
+	function upgrade_db() {
+		$version = config( "db_version" );
+		if( $version == NULL ) {
+			config( "db_version", 1 );
+			execute( "ALTER TABLE cameras ADD COLUMN starred BOOLEAN DEFAULT false" );
+		}
+	}
+
 	function load_or_create_db( ) {
 		global $db, $db_host, $db_user, $db_pass, $db_db;
 		$db = new mysqli( $db_host, $db_user, $db_pass, $db_db );
@@ -355,6 +357,20 @@
 				render( "nope" );
 				throw new Exception( "user tried to call do_".$_REQUEST[ "action" ].", which doesn't exist" );
 			}
+		}
+	}
+
+	function redirect_back() {
+		if( array_key_exists( "back", $_POST ) ) {
+			if( $_POST[ "back" ] == "reports" || $_POST[ "back" ] == "topcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=".$_POST[ "back" ]."&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} elseif( $_POST[ "back" ] == "bottomcams" ) {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ]."?action=topcams&bottom&offset=".urlencode( $_SESSION[ "offset" ] ) );
+			} else {
+				header( "Location: ".$_SERVER[ "PHP_SELF" ] );
+			}
+		} else {
+			header( "Location: ".$_SERVER[ "PHP_SELF" ] );
 		}
 	}
 ?>
