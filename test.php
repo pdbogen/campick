@@ -29,7 +29,11 @@
 	try {
 		$result = select( "SELECT * FROM test_table" );
 		if( $result[0][0] == "hi there" ) {
-			print( "<tr><td>select</td><td>SELECT</td><td style='color: green;'>OK</td></tr>" );
+			if( $result[1][0] == "second test" ) {
+				print( "<tr><td>select</td><td>SELECT</td><td style='color: green;'>OK</td></tr>" );
+			} else {
+				throw new Exception( "second row/first column wasn't as expected" );
+			}
 		} else {
 			throw new Exception( "first row/column wasn't as expected" );
 		}
