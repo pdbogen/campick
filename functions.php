@@ -290,6 +290,47 @@ along with campick.  If not, see <http://www.gnu.org/licenses/>.
 	}
 
 	function select( $sql, $types = NULL, $args = NULL, $desc = "unknown query" ) {
+		global $db;
+		static $st_cache = Array();
+		if( array_key_exists( $sql, $st_cache ) ) {
+			$statement = $st_cache[ $sql ];
+		} else {
+			if( !($statement = $db->prepare( $sql ) ) ) {
+				throw new Exception( "failed to prepare $desc ($sql): ".$db->error );
+			}
+			$st_cache[ $sql ] = $statement;
+		}
+		if( $types !== NULL ) {
+			$reflection = new ReflectionClass( "mysqli_stmt" );
+			$method     = $reflection->getMethod( "bind_param" );
+			$invoke_args = Array( $types );
+			foreach( $args as $k=>$v ) {
+				$invoke_args[] =& $args[$k];
+			}
+			if( !($method->invokeArgs( $statement, $invoke_args )) ) {
+				throw new Exception( "error binding params to $desc ($sql): ".$statement->error );
+			}
+		}
+		if( !($statement->execute()) ) {
+			throw new Exception( "error executing config $desc ($sql): ".$statement->error );
+		}
+		$results = Array();
+		$call = Array();
+		for( $i = 0; $i < $statement->field_count; $i++ ) {
+			$results[$i] = NULL;
+			$call[$i] =& $results[$i];
+		}
+		call_user_func_array( array( $statement, 'bind_result' ), $call );
+		$return = Array();
+		while( $statement->fetch() ) {
+			$tmp = Array();
+			foreach( $results as $v ) {
+				array_push( $tmp, $v );
+			}
+			$return[] = $tmp;
+		}
+		$statement->free_result();
+		return $return;
 	}
 
 	function execute( $sql, $types = NULL, $args = NULL, $desc = "unknown query" ) {
