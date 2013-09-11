@@ -308,7 +308,7 @@ along with campick.  If not, see <http://www.gnu.org/licenses/>.
 			$method     = $reflection->getMethod( "bind_param" );
 			$invoke_args = Array( $types );
 			foreach( $args as $k=>$v ) {
-				array_push( $invoke_args, &$args[$k] );
+				$invoke_args[] =& $args[$k];
 			}
 			if( !($method->invokeArgs( $statement, $invoke_args )) ) {
 				throw new Exception( "error binding params to $desc ($sql): ".$statement->error );
